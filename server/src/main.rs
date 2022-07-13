@@ -18,6 +18,11 @@ use tui::{
     Frame, Terminal,
 };
 
+struct Room {
+    pub name: String,
+    pub current_active_users: Vec<String>,
+    pub message_table: String, //something to refer to table in sql database
+}
 struct App {
     scroll: u16,
 }
@@ -37,6 +42,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Create a message
     Message {
         id: 1,
+        room: "test".to_string(),
         name: "Alice".to_string(),
         content: "Hello, world!".to_string(),
         timestamp: 123456789,

@@ -1,5 +1,6 @@
 pub struct Message {
     pub id: u32,
+    pub room: String,
     pub name: String,
     pub content: String,
     pub timestamp: u64,
