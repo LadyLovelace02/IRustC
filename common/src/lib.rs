@@ -8,9 +8,6 @@ pub struct Message {
 
 #[cfg(test)]
 mod tests {
-    use entity::message;
-    use sea_orm::Set;
-
     #[test]
     fn it_works() {
         let result = 2 + 2;

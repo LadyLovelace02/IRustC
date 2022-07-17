@@ -1570,6 +1570,7 @@ version = "0.1.0"
 dependencies = [
  "common",
  "crossterm 0.24.0",
+ "dotenv",
  "entity",
  "migration",
  "sea-orm",

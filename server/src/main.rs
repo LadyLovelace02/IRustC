@@ -4,6 +4,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+
 use std::{
     error::Error,
     io,
@@ -187,25 +188,36 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
 
 #[cfg(test)]
 mod tests {
+    use dotenv::dotenv;
     use entity::message;
-    use sea_orm::Set;
+    use sea_orm::EntityTrait;
 
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
+    use sea_orm::{Database, DatabaseConnection, Set};
 
     #[tokio::test]
     /// Test creating 100 messages
     async fn create_messages() {
+        // Add the env file variables
+        dotenv().ok();
+
+        // Get the database url from the env file
+        let db_url = std::env::var("DATABASE_URL").unwrap();
+
         // Connect to the database
+        let db: DatabaseConnection = Database::connect(db_url).await.unwrap();
 
-        let message = message::ActiveModel {
-            text: Set("Hello, world!".to_string()),
-            ..Default::default()
-        };
+        // Creade 100 messages
+        let messages = (0..100)
+            .map(|_| message::ActiveModel {
+                text: Set("Hello, world!".to_string()),
+                ..Default::default()
+            })
+            .collect::<Vec<_>>();
 
-        let message: message::Model = message.insert(db).await?;
+        // Insert the messages into the database
+        message::Entity::insert_many(messages)
+            .exec(&db)
+            .await
+            .unwrap();
     }
 }
