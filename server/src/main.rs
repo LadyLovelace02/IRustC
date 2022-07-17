@@ -184,3 +184,28 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .wrap(Wrap { trim: true });
     f.render_widget(paragraph, chunks[3]);
 }
+
+#[cfg(test)]
+mod tests {
+    use entity::message;
+    use sea_orm::Set;
+
+    #[test]
+    fn it_works() {
+        let result = 2 + 2;
+        assert_eq!(result, 4);
+    }
+
+    #[tokio::test]
+    /// Test creating 100 messages
+    async fn create_messages() {
+        // Connect to the database
+
+        let message = message::ActiveModel {
+            text: Set("Hello, world!".to_string()),
+            ..Default::default()
+        };
+
+        let message: message::Model = message.insert(db).await?;
+    }
+}

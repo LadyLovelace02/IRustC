@@ -9,3 +9,7 @@ edition = "2021"
 common = { path = "../common" }
 crossterm = "0.24.0"
 tui = { version = "0.18.0", features = ["crossterm"] }
+sea-orm = { version = "^0", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros" ] }
+entity = { path = "../entity" }
+migration = { path = "../migration" }
+tokio = { version = "1.20.0", features = ["full"] }
