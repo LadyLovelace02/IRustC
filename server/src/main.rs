@@ -4,6 +4,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+
 use std::{
     error::Error,
     io,
@@ -183,4 +184,40 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .alignment(Alignment::Right)
         .wrap(Wrap { trim: true });
     f.render_widget(paragraph, chunks[3]);
+}
+
+#[cfg(test)]
+mod tests {
+    use dotenv::dotenv;
+    use entity::message;
+    use sea_orm::EntityTrait;
+
+    use sea_orm::{Database, DatabaseConnection, Set};
+
+    #[tokio::test]
+    /// Test creating 100 messages
+    async fn create_messages() {
+        // Add the env file variables
+        dotenv().ok();
+
+        // Get the database url from the env file
+        let db_url = std::env::var("DATABASE_URL").unwrap();
+
+        // Connect to the database
+        let db: DatabaseConnection = Database::connect(db_url).await.unwrap();
+
+        // Creade 100 messages
+        let messages = (0..100)
+            .map(|_| message::ActiveModel {
+                text: Set("Hello, world!".to_string()),
+                ..Default::default()
+            })
+            .collect::<Vec<_>>();
+
+        // Insert the messages into the database
+        message::Entity::insert_many(messages)
+            .exec(&db)
+            .await
+            .unwrap();
+    }
 }
