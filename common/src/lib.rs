@@ -1,3 +1,6 @@
+use std::net::TcpStream;
+use serde::{Serialize, Deserialize};
+#[derive(Serialize, Deserialize, Debug)]//use to send messages over TCP stream
 pub struct Message {
     pub id: u32,
     pub room: String,
@@ -5,6 +8,7 @@ pub struct Message {
     pub content: String,
     pub timestamp: u64,
 }
+
 
 #[cfg(test)]
 mod tests {

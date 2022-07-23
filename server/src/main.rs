@@ -1,4 +1,6 @@
+use std::{io::prelude::*, net::TcpListener};
 use common::Message;
+use serde::{Serialize, Deserialize};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -8,7 +10,7 @@ use crossterm::{
 use std::{
     error::Error,
     io,
-    time::{Duration, Instant},
+    time::{Duration, Instant}, net::TcpStream,
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
@@ -37,6 +39,19 @@ impl App {
         self.scroll += 1;
         self.scroll %= 10;
     }
+}
+
+fn accept_connection(ip: String) {
+    let listener = TcpListener::bind(ip).unwrap();
+    match listener.accept() {
+        Ok((_socket, addr)) => println!("new client: {addr:?}"),
+        Err(e) => println!("couldn't connect to client: {e:?}"),
+    }
+}
+
+fn recieve_message(stream:TcpStream) {
+    let serializedMessage = stream.read();
+    let message: Message = serde_json::from_str(&serializedMessage).unwrap();
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
