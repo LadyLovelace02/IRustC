@@ -374,8 +374,11 @@ name = "client"
 version = "0.1.0"
 dependencies = [
  "common",
+ "crossterm 0.24.0",
  "serde",
  "serde_json",
+ "tui",
+ "unicode-width",
 ]
 
 [[package]]
