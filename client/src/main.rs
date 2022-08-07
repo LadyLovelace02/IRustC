@@ -55,7 +55,7 @@ impl App {
     }
 
     fn send_a_message(stream: TcpStream, message: Message) {
-        stream.write(serde_json::to_string(&message).unwrap());//send a message to the server
+        // stream.write(serde_json::to_string(&message).unwrap());//send a message to the server
     }
 }
 
