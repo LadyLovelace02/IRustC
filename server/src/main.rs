@@ -54,9 +54,9 @@ impl Connection{
         }
     }
 
-    fn recieve_message(&self, stream: &mut TcpStream) {
+    fn recieve_message(&mut self) {
         let mut buffer = String::new();
-        stream.read_to_string(&mut buffer).unwrap();
+        self.stream.read_to_string(&mut buffer).unwrap();
         let message: Message = serde_json::from_str(&mut buffer).unwrap();
         print!("Message Recieved: ");
         println!("{}", message.content);
@@ -78,22 +78,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
     let listener = TcpListener::bind("127.0.0.1:2234".to_string())?;
     loop {
-        let (mut socket, _) = listener.accept()?;
+        let (socket, _) = listener.accept()?;
         tokio::spawn(async move {
-            let mut buf = vec![0; 1024];
-            loop {
-                let n = socket .read(&mut buf)
-                    .expect("failed to read data from socket");
-                if n == 0 {
-                    return;
-                }
-                socket 
-                    .write_all(&buf[0..n])
-                    .expect("failed to write data from socket");
-            }
+            Connection { stream: socket }.recieve_message();
         });
     }
-    return Ok(());
 
     // setup terminal
     enable_raw_mode()?;
