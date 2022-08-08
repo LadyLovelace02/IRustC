@@ -58,6 +58,8 @@ impl Connection{
         let mut buffer = String::new();
         stream.read_to_string(&mut buffer).unwrap();
         let message: Message = serde_json::from_str(&mut buffer).unwrap();
+        print!("Message Recieved: ");
+        println!("{}", message.content);
     }
 
     fn send_client_data(&self, stream: &mut TcpStream, message: Message) {
