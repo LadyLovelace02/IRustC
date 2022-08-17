@@ -41,11 +41,11 @@ impl App {
         self.scroll %= 10;
     }
 }
-struct Connection{
+struct Connection {
     stream: TcpStream,
 }
 
-impl Connection{
+impl Connection {
     fn accept_connection(&self, ip: String) {
         let listener = TcpListener::bind(ip).unwrap();
         match listener.accept() {
