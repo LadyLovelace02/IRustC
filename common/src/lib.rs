@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::net::TcpStream;
+
 #[derive(Serialize, Deserialize, Debug)] //use to send messages over TCP stream
 pub struct Message {
     pub id: u32,
