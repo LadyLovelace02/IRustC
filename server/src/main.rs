@@ -1,16 +1,17 @@
-use std::{io::prelude::*, net::TcpListener};
 use common::Message;
-use serde::{Serialize, Deserialize};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
+use std::{io::prelude::*, net::TcpListener};
+
 use std::{
     error::Error,
     io,
-    time::{Duration, Instant}, net::TcpStream,
+    net::TcpStream,
+    time::{Duration, Instant},
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
@@ -40,21 +41,33 @@ impl App {
         self.scroll %= 10;
     }
 }
+struct Connection {
+    stream: TcpStream,
+}
 
-fn accept_connection(ip: String) {
-    let listener = TcpListener::bind(ip).unwrap();
-    match listener.accept() {
-        Ok((_socket, addr)) => println!("new client: {addr:?}"),
-        Err(e) => println!("couldn't connect to client: {e:?}"),
+impl Connection {
+    fn accept_connection(&self, ip: String) {
+        let listener = TcpListener::bind(ip).unwrap();
+        match listener.accept() {
+            Ok((_socket, addr)) => println!("new client: {addr:?}"),
+            Err(e) => println!("couldn't connect to client: {e:?}"),
+        }
+    }
+
+    fn recieve_message(&mut self) {
+        let mut buffer = String::new();
+        self.stream.read_to_string(&mut buffer).unwrap();
+        let message: Message = serde_json::from_str(&mut buffer).unwrap();
+        print!("Message Recieved: ");
+        println!("{}", message.content);
+    }
+
+    fn send_client_data(&self, stream: &mut TcpStream, message: Message) {
+        stream.write(&serde_json::to_string(&message).unwrap().as_bytes()); //send a message to the server
     }
 }
-
-fn recieve_message(stream:TcpStream) {
-    let serializedMessage = stream.read();
-    let message: Message = serde_json::from_str(&serializedMessage).unwrap();
-}
-
-fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     // Create a message
     Message {
         id: 1,
@@ -63,6 +76,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         content: "Hello, world!".to_string(),
         timestamp: 123456789,
     };
+    let listener = TcpListener::bind("127.0.0.1:2234".to_string())?;
+    loop {
+        let (socket, _) = listener.accept()?;
+        tokio::spawn(async move {
+            Connection { stream: socket }.recieve_message();
+        });
+    }
 
     // setup terminal
     enable_raw_mode()?;
