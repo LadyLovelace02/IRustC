@@ -6,23 +6,25 @@ use crossterm::{
 };
 use std::{
     error::Error,
-    io::{self, Write},
+    io::{self},//used to have Write
     net::TcpStream,
 };
 use tui::{
-    backend::{Backend, CrosstermBackend}, Terminal,
+    backend::{CrosstermBackend}, Terminal,//used to have Backend
 };
 
 
 use common::Message;
 
-use std::io::prelude::*;
+// use std::io::prelude::*;
 
 pub mod app;
 pub mod ui;
 pub mod client;
 
 use app::run_app;
+
+use std::sync::{Arc, Mutex};
 
 
 
@@ -31,19 +33,18 @@ struct App {
     /// Current value of the input box
     input: String,
     /// History of recorded messages
-    messages: Vec<String>,
-}
-
-impl Default for App {
-    fn default() -> App {
-        App {
-            input: String::new(),
-            messages: Vec::new(),
-        }
-    }
+    messages: Arc<Mutex<Vec<String>>>,
 }
 
 impl App {
+    /// Create a new App
+    fn new(messages: Arc<Mutex<Vec<String>>>) -> App {
+        App {
+            input: String::new(),
+            messages,
+        }
+    }
+
     /// Connect to the server
     fn connect_to_server(ip: String, port: String) {
         let connection_ip_and_port: String = format!("{}:{}", ip, port);
@@ -54,25 +55,24 @@ impl App {
         }
     }
 
-    fn send_a_message(_stream: TcpStream, _message: Message) {
+    fn send_network_message(_stream: TcpStream, _message: Message) {
         // stream.write(serde_json::to_string(&message).unwrap());//send a message to the server
     }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let test_message: Message = Message {
-        id: 1,
-        room: "test".to_string(),
-        name: "Alice".to_string(),
-        content: "Hello, world!".to_string(),
-        timestamp: 123456789,
-    };
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let messages = Arc::new(Mutex::new(Vec::new()));
 
-    // connect to the server
-    let mut client: Client = Client::connect_to_server("127.0.0.1".to_string(), "2234".to_string())
-        .expect("error connecting to server");
-    // send a message to the client
-    client.send_a_message_to_self(test_message);
+    // Start the client thread
+    tokio::spawn(async move {    
+        // connect to the server
+        let mut client: Client = Client::connect_to_server("127.0.0.1".to_string(), "2234".to_string(), messages.clone())
+            .expect("error connecting to server");
+    });
+
+
+
 
     // setup terminal
     enable_raw_mode()?;
@@ -82,7 +82,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let app = App::default();
+    let app = App::new(messages.clone());
     let res = run_app(&mut terminal, app);
 
     // restore terminal
