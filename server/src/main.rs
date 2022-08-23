@@ -1,4 +1,4 @@
-use common::Message;
+use common::{Message, NetworkMessage};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -21,12 +21,13 @@ use tui::{
     widgets::{Block, Borders, Paragraph, Wrap},
     Frame, Terminal,
 };
+use std::sync::{Arc, Mutex};
 
-struct Room {
-    pub name: String,
-    pub current_active_users: Vec<String>,
-    pub message_table: String, //something to refer to table in sql database
-}
+// struct Room {
+//     pub name: String,
+//     pub current_active_users: Vec<String>,
+//     pub message_table: String, //something to refer to table in sql database
+// }
 struct App {
     scroll: u16,
 }
@@ -46,20 +47,22 @@ struct Connection {
 }
 
 impl Connection {
-    fn accept_connection(&self, ip: String) {
-        let listener = TcpListener::bind(ip).unwrap();
-        match listener.accept() {
-            Ok((_socket, addr)) => println!("new client: {addr:?}"),
-            Err(e) => println!("couldn't connect to client: {e:?}"),
-        }
-    }
+    // fn accept_connection(&self, ip: String) {
+    //     let listener = TcpListener::bind(ip).unwrap();
+    //     match listener.accept() {
+    //         Ok((_socket, addr)) => println!("new client: {addr:?}"),
+    //         Err(e) => println!("couldn't connect to client: {e:?}"),
+    //     }
+    // }
 
-    fn recieve_message(&mut self) {
+    fn recieve_message(&mut self) -> NetworkMessage {
         let mut buffer = String::new();
         self.stream.read_to_string(&mut buffer).unwrap();
-        let message: Message = serde_json::from_str(&mut buffer).unwrap();
-        print!("Message Recieved: ");
-        println!("{}", message.content);
+        let network_message: NetworkMessage = serde_json::from_str(&mut buffer).unwrap();
+        // print!("Message Recieved: ");
+        // println!("{}", network_message.content);
+
+        network_message
     }
 
     fn send_client_data(&self, stream: &mut TcpStream, message: Message) {
@@ -68,6 +71,8 @@ impl Connection {
 }
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let mut connection_pool = Arc::new(Mutex::new(Vec::new()));
+
     // Create a message
     Message {
         id: 1,
@@ -78,9 +83,43 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
     let listener = TcpListener::bind("127.0.0.1:2234".to_string())?;
     loop {
+        // Clone the connection pool for each task
+        let connection_pool = connection_pool.clone();
+
         let (socket, _) = listener.accept()?;
         tokio::spawn(async move {
-            Connection { stream: socket }.recieve_message();
+            let connection = Connection { stream: socket };
+
+            // Add the connection to the pool
+            let mut connection_pool_lock = connection_pool.lock().unwrap();
+            connection_pool_lock.push(connection);
+
+            // Drop the current lock
+            drop(connection_pool_lock);
+
+            // Loop for another message to be received
+            loop {
+                let message: NetworkMessage = connection.recieve_message();
+
+                match message {
+                    NetworkMessage::Message(message) => {
+                        // Send the message to all clients
+                        let mut connection_pool = connection_pool.lock().unwrap();
+                        for connection in connection_pool.iter_mut() {
+                            // Make sure this isn't the same connection that sent the
+                            // message
+                            // if connection.stream.peer_addr() != socket.peer_addr() {
+                            //     connection.send_client_data(&mut connection.stream, message);
+                            // }
+        
+                            connection.send_client_data(&mut connection.stream, message.clone());
+                        }
+                    
+                    }
+                    _ => {}
+                }
+
+            }
         });
     }
 

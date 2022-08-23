@@ -377,6 +377,7 @@ dependencies = [
  "crossterm 0.24.0",
  "serde",
  "serde_json",
+ "tokio",
  "tui",
  "unicode-width",
 ]
